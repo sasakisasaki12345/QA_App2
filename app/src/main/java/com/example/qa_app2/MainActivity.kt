@@ -155,7 +155,9 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
         mListView.setOnItemClickListener { parent, view, position, id ->
             // Questionのインスタンスを渡して質問詳細画面を起動する
+            val user = FirebaseAuth.getInstance().currentUser
             val intent = Intent(applicationContext, QuestionDetailActivity::class.java)
+
             intent.putExtra("question", mQuestionArrayList[position])
             startActivity(intent)
         }

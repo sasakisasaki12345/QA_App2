@@ -21,7 +21,8 @@ import java.util.HashMap
 class QuestionDetailActivity : AppCompatActivity() {
 
     private lateinit var mQuestion: Question
-    private lateinit var mAdapter: QuestionDetailListAdapter
+    private lateinit var mAdapterNonUser: QuestionDetailListAdapter
+    private lateinit var mAdapterUser:QuestionDetailListAdapterLogin
     private lateinit var mAnswerRef: DatabaseReference
 
     private val mEventListener = object : ChildEventListener {
@@ -42,8 +43,16 @@ class QuestionDetailActivity : AppCompatActivity() {
             val uid = map["uid"] ?: ""
 
             val answer = Answer(body, name, uid, answerUid)
+
             mQuestion.answers.add(answer)
-            mAdapter.notifyDataSetChanged()
+
+            val user = FirebaseAuth.getInstance().currentUser
+            if (user != null) {
+                mAdapterUser.notifyDataSetChanged()
+            }else{
+                mAdapterNonUser.notifyDataSetChanged()
+            }
+
         }
 
         override fun onChildChanged(dataSnapshot: DataSnapshot, s: String?) {
@@ -66,17 +75,25 @@ class QuestionDetailActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_question_detail)
-
         // 渡ってきたQuestionのオブジェクトを保持する
         val extras = intent.extras
+
+
         mQuestion = extras.get("question") as Question
 
         title = mQuestion.title
 
-        // ListViewの準備
-        mAdapter = QuestionDetailListAdapter(this, mQuestion)
-        listView.adapter = mAdapter
-        mAdapter.notifyDataSetChanged()
+        val user = FirebaseAuth.getInstance().currentUser
+        if (user != null){
+            mAdapterUser= QuestionDetailListAdapterLogin(this, mQuestion)
+            listView!!.adapter = mAdapterUser
+            mAdapterUser.notifyDataSetChanged()
+        }else {
+            // ListViewの準備
+            mAdapterNonUser= QuestionDetailListAdapter(this, mQuestion)
+            listView!!.adapter = mAdapterNonUser
+            mAdapterNonUser.notifyDataSetChanged()
+        }
 
         fab.setOnClickListener {
             // ログイン済みのユーザーを取得する
