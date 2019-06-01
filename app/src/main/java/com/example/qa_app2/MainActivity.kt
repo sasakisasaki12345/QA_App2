@@ -30,6 +30,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     private lateinit var mListView: ListView
     private lateinit var mQuestionArrayList: ArrayList<Question>
     private lateinit var mAdapter: QuestionsListAdapter
+    private var favoriteArrayList = ArrayList<Favorite>()
+    private var questionFavoriteArraylist = ArrayList<Question>()
 
     private var mGenreRef: DatabaseReference? = null
 
@@ -61,8 +63,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                 }
             }
 
-            val question = Question(title, body, name, uid, dataSnapshot.key ?: "",
-                mGenre, bytes, answerArrayList)
+            val question = Question(
+                title, body, name, uid, dataSnapshot.key ?: "",
+                mGenre, bytes, answerArrayList
+            )
             mQuestionArrayList.add(question)
             mAdapter.notifyDataSetChanged()
         }
@@ -243,10 +247,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         val user = FirebaseAuth.getInstance().currentUser
         if (user == null) {
             setContentView(R.layout.activity_main)
-            Log.d("a","onResumeでactivity_mainをセット")
-        }else{
+            Log.d("a", "onResumeでactivity_mainをセット")
+        } else {
             setContentView(R.layout.activity_main_login)
-            Log.d("a","onResumeでactivity_main_loginをセット")
+            Log.d("a", "onResumeでactivity_main_loginをセット")
         }
 
         mToolbar = findViewById(R.id.toolbar)
@@ -305,9 +309,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
 
 
-
         // 1:趣味を既定の選択とする
-        if(mGenre == 0) {
+        if (mGenre == 0) {
             onNavigationItemSelected(navigationView.menu.getItem(0))
         }
     }
@@ -327,25 +330,37 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         } else if (id == R.id.nav_compter) {
             mToolbar.title = "コンピューター"
             mGenre = 4
+        } else if (id == R.id.nav_favorite) {
+            mToolbar.title = "お気に入り"
+            mGenre = 5
         }
 
         val drawer = findViewById<DrawerLayout>(R.id.drawer_layout)
         drawer.closeDrawer(GravityCompat.START)
 
-        // 質問のリストをクリアしてから再度Adapterにセットし、AdapterをListViewにセットし直す
-        mQuestionArrayList.clear()
-        mAdapter.setQuestionArrayList(mQuestionArrayList)
-        mListView.adapter = mAdapter
+        var user = FirebaseAuth.getInstance().currentUser
 
-        // 選択したジャンルにリスナーを登録する
-        if (mGenreRef != null) {
-            mGenreRef!!.removeEventListener(mEventListener)
+        // 質問のリストをクリアしてから再度Adapterにセットし、AdapterをListViewにセットし直す
+        if (mGenre == 5) {
+            val intent = Intent(applicationContext, FavoriteActivity::class.java)
+            startActivity(intent)
+
+        } else {
+            mQuestionArrayList.clear()
+            mAdapter.setQuestionArrayList(mQuestionArrayList)
+            mListView.adapter = mAdapter
+
+            // 選択したジャンルにリスナーを登録する
+            if (mGenreRef != null) {
+                mGenreRef!!.removeEventListener(mEventListener)
+            }
+            mGenreRef = mDatabaseReference.child(ContentsPATH).child(mGenre.toString())
+            mGenreRef!!.addChildEventListener(mEventListener)
         }
-        mGenreRef = mDatabaseReference.child(ContentsPATH).child(mGenre.toString())
-        mGenreRef!!.addChildEventListener(mEventListener)
 
         return true
     }
-}
 
+
+}
 

@@ -6,6 +6,7 @@ import android.support.design.widget.FloatingActionButton
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.View
+import android.widget.Button
 import android.widget.ListView
 import android.widget.Toast
 
@@ -17,10 +18,11 @@ import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import kotlinx.android.synthetic.main.activity_question_detail.*
+import kotlinx.android.synthetic.main.activity_question_detail.progressBar
+import kotlinx.android.synthetic.main.activity_question_send.*
+import kotlin.collections.HashMap
 
-import java.util.HashMap
-
-class QuestionDetailActivity : AppCompatActivity() {
+class QuestionDetailActivity : AppCompatActivity(),DatabaseReference.CompletionListener {
 
     private lateinit var mQuestion: Question
     private lateinit var mAdapterNonUser: QuestionDetailListAdapter
@@ -98,16 +100,16 @@ class QuestionDetailActivity : AppCompatActivity() {
             var mDataBaseReference = FirebaseDatabase.getInstance().reference
             var favoriteRef = mDataBaseReference.child(FavoritePATH).child(user!!.uid)
             var mQuestionUid = mQuestion.questionUid
-            favoriteArrayList.clear()
             favoriteRef!!.addChildEventListener(m2EventListener)
 
-            if (favoriteRef == null) {
+            /*if (favoriteRef == null) {
                 //そもそもお気に入りが一つもない場合
                 Log.d("a", "favoriteがnull")
                 favorite_button.setImageResource(R.drawable.abc_ic_star_half_black_36dp) //画像を未登録のものに設定
                 favorite_frag = "true"
 
             } else {
+            */
                 //質問がお気に入り登録されてるか判断
                 //forでfavoritesを一周
                 for (favorite in favoriteArrayList) {
@@ -129,21 +131,27 @@ class QuestionDetailActivity : AppCompatActivity() {
                     favorite_frag = "true"
                 }
 
-            }
+           // }
            favorite_button.setOnClickListener {
+               var a = findViewById<View>(R.id.favorite_button)
+               a.visibility=View.INVISIBLE
+               Log.d("a", "fabを非表示")
                var mDataBaseReference = FirebaseDatabase.getInstance().reference
                var favoriteRef = mDataBaseReference.child(FavoritePATH).child(user!!.uid)
                var mQuestionUid = mQuestion.questionUid
-               favoriteArrayList.clear()
+               var mGenre = mQuestion.genre.toString()
                favoriteRef!!.addChildEventListener(m2EventListener)
                var favoriteUid:String?=null
-
-
+               val data = HashMap<String, String>()
+               data["questionUid"]=mQuestionUid
+               data["genre"]=mGenre
+               /*
                if (favoriteArrayList==null){
                    favorite_button.setImageResource(R.drawable.abc_ic_star_black_36dp)
                    Toast.makeText(applicationContext,"お気に入り登録いたしました",Toast.LENGTH_LONG).show()
-                   favoriteRef.push().setValue(mQuestionUid)
+                   favoriteRef.push().setValue(data,this)
                }else {
+               */
                    favorite_serch="false"
                    for (favorite in favoriteArrayList) {
                        if (mQuestionUid == favorite.questionUid) {
@@ -156,7 +164,7 @@ class QuestionDetailActivity : AppCompatActivity() {
                    }
 
 
-                   if (favorite_serch=="True") {
+                   if (favorite_serch=="true") {
                        //trueつまりすでに登録があった場合：それを消す
                        favorite_button.setImageResource(R.drawable.abc_ic_star_half_black_36dp)
                        Toast.makeText(applicationContext,"お気に入り登録から消しました",Toast.LENGTH_LONG).show()
@@ -166,15 +174,15 @@ class QuestionDetailActivity : AppCompatActivity() {
                        //falseつまり登録がなかった場合：それを登録する
                        favorite_button.setImageResource(R.drawable.abc_ic_star_black_36dp)
                        Toast.makeText(applicationContext,"お気に入り登録いたしました",Toast.LENGTH_LONG).show()
-                       favoriteRef.push().setValue(mQuestionUid)
-
-                   }
+                       favoriteRef.push().setValue(data,this)
+                   //}
                }
            }
 
 
 
                 fab.setOnClickListener {
+
                     // ログイン済みのユーザーを取得する
                     val user = FirebaseAuth.getInstance().currentUser
 
@@ -189,6 +197,10 @@ class QuestionDetailActivity : AppCompatActivity() {
                         startActivity(intent)
                 }
             }
+        }else{
+            var a = findViewById<View>(R.id.favorite_button)
+            a.visibility=View.INVISIBLE
+            Log.d("a", "fabを非表示")
         }
 
                 val dataBaseReference = FirebaseDatabase.getInstance().reference
@@ -199,10 +211,11 @@ class QuestionDetailActivity : AppCompatActivity() {
     }
     private val m2EventListener = object : ChildEventListener {
         override fun onChildAdded(datasnapshot: DataSnapshot, p1: String?) {
-            var map1 = datasnapshot.value as Map<String,String>
-            var key = datasnapshot.key?: ""
-            val questionUid = map1["questionUid"]?: ""
-            var favorite:Favorite = Favorite(questionUid, key)
+            val map = datasnapshot.value as Map<String, String>
+            var key = datasnapshot.key
+            val questionUid = map["questionUid"]
+            val mGenre = map["genre"]
+            var favorite:Favorite = Favorite(questionUid, key,mGenre)
             favoriteArrayList.add(favorite)
         }
 
@@ -244,6 +257,10 @@ class QuestionDetailActivity : AppCompatActivity() {
             Log.d("a", "deleteFavoriteを消す")
 
         }
+    }
+
+    override fun onComplete(p0: DatabaseError?, p1: DatabaseReference) {
+
     }
 
 }
