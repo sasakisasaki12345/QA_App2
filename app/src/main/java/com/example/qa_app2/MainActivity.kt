@@ -11,6 +11,7 @@ import android.support.v7.app.ActionBarDrawerToggle
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.Toolbar
 import android.util.Base64
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -18,6 +19,7 @@ import android.widget.ListView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.database.*
+import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener {
 
@@ -66,6 +68,10 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
 
         override fun onChildChanged(dataSnapshot: DataSnapshot, s: String?) {
+
+
+            //コード途中、書くところ違うかも。一応コメントアウトで保存
+            /*
             val map = dataSnapshot.value as Map<String, String>
 
             // 変更があったQuestionを探す
@@ -88,9 +94,32 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
                     mAdapter.notifyDataSetChanged()
                 }
             }
+            */
         }
 
-        override fun onChildRemoved(p0: DataSnapshot) {
+        override fun onChildRemoved(dataSnapshot: DataSnapshot) {
+            val map = dataSnapshot.value as Map<String, String>
+
+            // 変更があったQuestionを探す
+            for (question in mQuestionArrayList) {
+                if (dataSnapshot.key.equals(question.questionUid)) {
+                    // このアプリで変更がある可能性があるのは回答(Answer)のみ
+                    question.answers.clear()
+                    val answerMap = map["answers"] as Map<String, String>?
+                    if (answerMap != null) {
+                        for (key in answerMap.keys) {
+                            val temp = answerMap[key] as Map<String, String>
+                            val answerBody = temp["body"] ?: ""
+                            val answerName = temp["name"] ?: ""
+                            val answerUid = temp["uid"] ?: ""
+                            val answer = Answer(answerBody, answerName, answerUid, key)
+                            question.answers.add(answer)
+                        }
+                    }
+
+                    mAdapter.notifyDataSetChanged()
+                }
+            }
 
         }
 
@@ -106,10 +135,16 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        /*
+        Log.d("a","onCreateでアクティビティをセット")
         mToolbar = findViewById(R.id.toolbar)
         setSupportActionBar(mToolbar)
+        */
 
+        /*
         val fab = findViewById<FloatingActionButton>(R.id.fab)
+
         fab.setOnClickListener { view ->
 
         // ジャンルを選択していない場合（mGenre == 0）はエラーを表示するだけ
@@ -135,17 +170,33 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         }
     }
 
+        */
+
+        //val user = FirebaseAuth.getInstance().currentUser
+
         // ナビゲーションドロワーの設定
+        /*
         val drawer = findViewById<DrawerLayout>(R.id.drawer_layout)
         val toggle = ActionBarDrawerToggle(this, drawer, mToolbar, R.string.app_name, R.string.app_name)
         drawer.addDrawerListener(toggle)
         toggle.syncState()
-
-        val navigationView = findViewById<NavigationView>(R.id.nav_view)
+        var navigationView = findViewById<NavigationView>(R.id.nav_view)
         navigationView.setNavigationItemSelectedListener(this)
+        */
+/*
+        //ログインしているか確認
+            //していなかったらnav_view表示
+        if(user == null ) {
+            //変更なしでそのまま出力
+        }else{
+            //ログインしている場合、activity_mainのnav_viewのmenuを変更
+            nav_view.menu =
+        }
+        */
+
 
         // Firebase
-        mDatabaseReference = FirebaseDatabase.getInstance().reference
+        /*mDatabaseReference = FirebaseDatabase.getInstance().reference
 
         // ListViewの準備
         mListView = findViewById(R.id.listView)
@@ -161,6 +212,7 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             intent.putExtra("question", mQuestionArrayList[position])
             startActivity(intent)
         }
+        */
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -186,7 +238,73 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
 
     override fun onResume() {
         super.onResume()
-        val navigationView = findViewById<NavigationView>(R.id.nav_view)
+
+        //メニューバーのための変更点
+        val user = FirebaseAuth.getInstance().currentUser
+        if (user == null) {
+            setContentView(R.layout.activity_main)
+            Log.d("a","onResumeでactivity_mainをセット")
+        }else{
+            setContentView(R.layout.activity_main_login)
+            Log.d("a","onResumeでactivity_main_loginをセット")
+        }
+
+        mToolbar = findViewById(R.id.toolbar)
+        setSupportActionBar(mToolbar)
+
+        //val navigationView = findViewById<NavigationView>(R.id.nav_view_)
+        val drawer = findViewById<DrawerLayout>(R.id.drawer_layout)
+        val toggle = ActionBarDrawerToggle(this, drawer, mToolbar, R.string.app_name, R.string.app_name)
+        drawer.addDrawerListener(toggle)
+        toggle.syncState()
+        var navigationView = findViewById<NavigationView>(R.id.nav_view)
+        navigationView.setNavigationItemSelectedListener(this)
+
+        mDatabaseReference = FirebaseDatabase.getInstance().reference
+
+        // ListViewの準備
+        mListView = findViewById(R.id.listView)
+        mAdapter = QuestionsListAdapter(this)
+        mQuestionArrayList = ArrayList<Question>()
+        mAdapter.notifyDataSetChanged()
+
+        mListView.setOnItemClickListener { parent, view, position, id ->
+            // Questionのインスタンスを渡して質問詳細画面を起動する
+            val user = FirebaseAuth.getInstance().currentUser
+            val intent = Intent(applicationContext, QuestionDetailActivity::class.java)
+
+            intent.putExtra("question", mQuestionArrayList[position])
+            startActivity(intent)
+        }
+
+        val fab = findViewById<FloatingActionButton>(R.id.fab)
+
+        fab.setOnClickListener { view ->
+
+            // ジャンルを選択していない場合（mGenre == 0）はエラーを表示するだけ
+            if (mGenre == 0) {
+                Snackbar.make(view, "ジャンルを選択して下さい", Snackbar.LENGTH_LONG).show()
+            } else {
+
+            }
+            // ログイン済みのユーザーを取得する
+            val user = FirebaseAuth.getInstance().currentUser
+
+            if (user == null) {
+                // ログインしていなければログイン画面に遷移させる
+                val intent = Intent(applicationContext, LoginActivity::class.java)
+                startActivity(intent)
+            } else {
+                val view = findViewById<View>(android.R.id.content)
+                Snackbar.make(view, "ログイン済み", Snackbar.LENGTH_LONG).show()
+                // ジャンルを渡して質問作成画面を起動する
+                val intent = Intent(applicationContext, QuestionSendActivity::class.java)
+                intent.putExtra("genre", mGenre)
+                startActivity(intent)
+            }
+        }
+
+
 
         // 1:趣味を既定の選択とする
         if(mGenre == 0) {
