@@ -7,6 +7,7 @@ import android.util.Log
 import android.widget.ListView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
+import kotlin.collections.HashMap
 
 class FavoriteActivity : AppCompatActivity(), DatabaseReference.CompletionListener {
     var mDatabaseReference = FirebaseDatabase.getInstance().reference
@@ -122,6 +123,7 @@ class FavoriteActivity : AppCompatActivity(), DatabaseReference.CompletionListen
 
     private val m2EventListener = object : ChildEventListener {
         override fun onChildAdded(dataSnapshot: DataSnapshot, s: String?) {
+            Log.d("a", dataSnapshot.value.toString())
             Log.d("a", "m2EventLister開始")
             val map = dataSnapshot.value as Map<String, String>
             val title = map["title"] ?: ""
@@ -139,7 +141,7 @@ class FavoriteActivity : AppCompatActivity(), DatabaseReference.CompletionListen
                 }
 
             var answerArrayList = ArrayList<Answer>()
-            val answerMap = map2["answers"] as Map<String, String>?
+            val answerMap = map["answers"] as Map<String, String>?
             if (answerMap != null) {
                 for (key in answerMap.keys) {
                     val temp = answerMap[key] as Map<String, String>

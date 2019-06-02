@@ -102,16 +102,6 @@ class QuestionDetailActivity : AppCompatActivity(),DatabaseReference.CompletionL
             var mQuestionUid = mQuestion.questionUid
             favoriteRef!!.addChildEventListener(m2EventListener)
 
-            /*if (favoriteRef == null) {
-                //そもそもお気に入りが一つもない場合
-                Log.d("a", "favoriteがnull")
-                favorite_button.setImageResource(R.drawable.abc_ic_star_half_black_36dp) //画像を未登録のものに設定
-                favorite_frag = "true"
-
-            } else {
-            */
-                //質問がお気に入り登録されてるか判断
-                //forでfavoritesを一周
                 for (favorite in favoriteArrayList) {
                     if (mQuestionUid == favorite.questionUid) {
                         favorite_serch = "true"
@@ -134,8 +124,7 @@ class QuestionDetailActivity : AppCompatActivity(),DatabaseReference.CompletionL
            // }
            favorite_button.setOnClickListener {
                var a = findViewById<View>(R.id.favorite_button)
-               a.visibility=View.INVISIBLE
-               Log.d("a", "fabを非表示")
+
                var mDataBaseReference = FirebaseDatabase.getInstance().reference
                var favoriteRef = mDataBaseReference.child(FavoritePATH).child(user!!.uid)
                var mQuestionUid = mQuestion.questionUid
@@ -213,8 +202,8 @@ class QuestionDetailActivity : AppCompatActivity(),DatabaseReference.CompletionL
         override fun onChildAdded(datasnapshot: DataSnapshot, p1: String?) {
             val map = datasnapshot.value as Map<String, String>
             var key = datasnapshot.key
-            val questionUid = map["questionUid"]
-            val mGenre = map["genre"]
+            val questionUid = map["questionUid"]?:""
+            val mGenre = map["genre"]?:""
             var favorite:Favorite = Favorite(questionUid, key,mGenre)
             favoriteArrayList.add(favorite)
         }
