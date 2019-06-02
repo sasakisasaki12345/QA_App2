@@ -2,12 +2,20 @@ package com.example.qa_app2
 
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
+import android.util.Base64
 import android.util.Log
-import com.google.firebase.database.ChildEventListener
-import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.DatabaseError
+import android.widget.ListView
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.*
 
-class FavoriteActivity : AppCompatActivity() {
+class FavoriteActivity : AppCompatActivity(), DatabaseReference.CompletionListener {
+    var mDatabaseReference = FirebaseDatabase.getInstance().reference
+    var mQuestionArrayList = ArrayList<Question>()
+    var mFavoriteQuestionArrayList = ArrayList<Favorite>()
+    private lateinit var mListView: ListView
+    private lateinit var mAdapter: QuestionsListAdapter
+
+    var favorite:Favorite?=null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -16,65 +24,60 @@ class FavoriteActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        Log.d("a","Resume開始")
+        mListView = findViewById(R.id.listView)
+        mAdapter = QuestionsListAdapter(this)
+        mQuestionArrayList = ArrayList<Question>()
+        mAdapter.notifyDataSetChanged()
 
-
+        var user = FirebaseAuth.getInstance().currentUser
         var mQuestionFavoRef = mDatabaseReference.child(FavoritePATH).child(user!!.uid)
 
+        mQuestionFavoRef.addChildEventListener(mEventListener)
+        Log.d("a","EventListenerから帰還")
 
         //favoriteに入っているもの一式を取得しfavoriteArrayListに入れる
-        mQuestionArrayList.clear()
-        var mGenreRef1 = mDatabaseReference.child(ContentsPATH).child("1") //1のリファレンス開く
-        var mGenreRef2 = mDatabaseReference.child(ContentsPATH).child("2")//2のリファレンス開く
-        var mGenreRef3 = mDatabaseReference.child(ContentsPATH).child("3")//3のリファレンス開く
-        var mGenreRef4 = mDatabaseReference.child(ContentsPATH).child("4") //4のリファレンス開く
-        mQuestionFavoRef.addChildEventListener(m2EventListener)
 
-        for (favoriteSelect in favoriteArrayList) {//favorite一つずつ取り出し
+        //ログ出力
+        for(favo in mFavoriteQuestionArrayList) {
+            Log.d("a", "favorite内の情報取得")
+            Log.d("a", "genre="+favo.genre+"questionUid="+favo.questionUid)
+        }
 
-            //1のやつチェック
-            mGenreRef1.addChildEventListener(mEventListener)//1を取り出す
-            for (question in mQuestionArrayList) {//forで１の中のやつ一つずつ取り出す
-                if (favoriteSelect.questionUid == question.questionUid) {//ifでfavoriteSelect.questionId==question.key
-                    questionFavoriteArraylist.add(question)//trueならmfavoriteArrayList.add(question)
-                }
-            }
-            //2のやつチェック
-            mGenreRef2.addChildEventListener(mEventListener)//1を取り出す
-            for (question in mQuestionArrayList) {//forで１の中のやつ一つずつ取り出す
-                if (favoriteSelect.questionUid == question.questionUid) {//ifでfavoriteSelect.questionId==question.key
-                    questionFavoriteArraylist.add(question)//trueならmfavoriteArrayList.add(question)
-                }
-            }
+       /*for (favorite in mFavoriteQuestionArrayList) {//favorite一つずつ取り出し
 
-            //3のやつチェック
-            mGenreRef3.addChildEventListener(mEventListener)//1を取り出す
-            for (question in mQuestionArrayList) {//forで１の中のやつ一つずつ取り出す
-                if (favoriteSelect.questionUid == question.questionUid) {//ifでfavoriteSelect.questionId==question.key
-                    questionFavoriteArraylist.add(question)//trueならmfavoriteArrayList.add(question)
-                }
-            }
+            var mQestionRef =mDatabaseReference.child(ContentsPATH).child(favorite.genre.toString()).child(favorite.questionUid.toString())
+            mQestionRef.addChildEventListener(m2EventListener)
 
-            //4のやつチェック
-            mGenreRef4.addChildEventListener(mEventListener)//1を取り出す
-            for (question in mQuestionArrayList) {//forで１の中のやつ一つずつ取り出す
-                if (favoriteSelect.questionUid == question.questionUid) {//ifでfavoriteSelect.questionId==question.key
-                    questionFavoriteArraylist.add(question)//trueならmfavoriteArrayList.add(question)
-                }
+            //ログ出力
+            for(ques in mQuestionArrayList) {
+                Log.d("a", "questionArrayList内の情報取得")
+                Log.d("a", "genre="+ques.genre+"questionUid="+ques.questionUid)
             }
         }
+
+        */
         //全てのfavoriteArrayListのチェックが終わったらそのリストをアダプターいセット
-        mAdapter.setQuestionArrayList(questionFavoriteArraylist)
-        mListView.adapter = mAdapter
-        mAdapter.notifyDataSetChanged()
+        //mQuestionArrayList.clear()
+        //mAdapter.setQuestionArrayList(mQuestionArrayList)
+        //mListView.adapter = mAdapter
+        //mAdapter.notifyDataSetChanged()
     }
 
-    private val m2EventListener = object : ChildEventListener {
+    private val mEventListener = object : ChildEventListener {
         override fun onChildAdded(datasnapshot: DataSnapshot, p1: String?) {
+            Log.d("a", "mEventLister開始")
             val map = datasnapshot.value as Map<String, String>
             var key = datasnapshot.key
             val questionUid = map["questionUid"]
-            var favorite: Favorite = Favorite(questionUid, key)
-            favoriteArrayList.add(favorite)
+            var mGenre = map["genre"]
+            var favorite: Favorite = Favorite(questionUid, key,mGenre)
+            //mFavoriteQuestionArrayList.add(favorite)
+            Log.d("a", "mEventListerで取得した結果="+questionUid)
+
+            var mQestionRef =mDatabaseReference.child(ContentsPATH).child(mGenre.toString()).child(questionUid.toString())
+            mQestionRef.addChildEventListener(m2EventListener)
+
         }
 
         override fun onChildChanged(datasnapshot: DataSnapshot, p1: String?) {
@@ -96,7 +99,7 @@ class FavoriteActivity : AppCompatActivity() {
             var deleteFavorite: Favorite? = null
 
             //削除があったfavorite探す
-            for (favorite in favoriteArrayList) {
+            for (favorite in mFavoriteQuestionArrayList) {
                 if (favorite.favoriteUid!!.equals(datasnapshot.key)) {
                     //DBで削除があったfavoriteを　allaylistから消す
                     //elemenneで消せるらしい。できなかったら、countで消す。
@@ -111,10 +114,94 @@ class FavoriteActivity : AppCompatActivity() {
                 }
 
             }
-            favoriteArrayList.remove(deleteFavorite)
+            mFavoriteQuestionArrayList.remove(deleteFavorite)
             Log.d("a", "deleteFavoriteを消す")
 
         }
+    }
+
+    private val m2EventListener = object : ChildEventListener {
+        override fun onChildAdded(dataSnapshot: DataSnapshot, s: String?) {
+            Log.d("a", "m2EventLister開始")
+            val map2 = dataSnapshot.value as Map<String, String>
+            val title = map2["title"] ?: ""
+            val body = map2["body"] ?: ""
+            val name = map2["name"] ?: ""
+            val uid = map2["uid"] ?: ""
+            val imageString = map2["image"] ?: ""
+            val genre=favorite!!.genre!!.toInt()
+
+            val bytes =
+                if (imageString.isNotEmpty()) {
+                    Base64.decode(imageString, Base64.DEFAULT)
+                } else {
+                    byteArrayOf()
+                }
+
+            var answerArrayList = ArrayList<Answer>()
+            val answerMap = map2["answers"] as Map<String, String>?
+            if (answerMap != null) {
+                for (key in answerMap.keys) {
+                    val temp = answerMap[key] as Map<String, String>
+                    val answerBody = temp["body"] ?: ""
+                    val answerName = temp["name"] ?: ""
+                    val answerUid = temp["uid"] ?: ""
+
+                    val answer = Answer(answerBody, answerName, answerUid, key)
+                    answerArrayList.add(answer)
+                }
+            }
+
+            val question = Question(
+                title, body, name, uid, dataSnapshot.key ?: "",
+                genre, bytes, answerArrayList
+            )
+            mQuestionArrayList.add(question)
+            mAdapter.notifyDataSetChanged()
+        }
+
+        override fun onChildChanged(dataSnapshot: DataSnapshot, s: String?) {
+
+        }
+
+        override fun onChildRemoved(dataSnapshot: DataSnapshot) {
+            val map = dataSnapshot.value as Map<String, String>
+
+            // 変更があったQuestionを探す
+            for (question in mQuestionArrayList) {
+                if (dataSnapshot.key.equals(question.questionUid)) {
+                    // このアプリで変更がある可能性があるのは回答(Answer)のみ
+                    question.answers.clear()
+
+                    val answerMap = map["answers"] as Map<String, String>?
+                    if (answerMap != null) {
+                        for (key in answerMap.keys) {
+                            val temp = answerMap[key] as Map<String, String>
+                            val answerBody = temp["body"] ?: ""
+                            val answerName = temp["name"] ?: ""
+                            val answerUid = temp["uid"] ?: ""
+                            val answer = Answer(answerBody, answerName, answerUid, key)
+                            question.answers.add(answer)
+                        }
+                    }
+
+                    mAdapter.notifyDataSetChanged()
+                }
+            }
+
+        }
+
+        override fun onChildMoved(p0: DataSnapshot, p1: String?) {
+
+        }
+
+        override fun onCancelled(p0: DatabaseError) {
+
+        }
+    }
+
+    override fun onComplete(p0: DatabaseError?, p1: DatabaseReference) {
+
     }
 
 }
