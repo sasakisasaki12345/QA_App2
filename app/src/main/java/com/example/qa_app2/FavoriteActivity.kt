@@ -123,12 +123,12 @@ class FavoriteActivity : AppCompatActivity(), DatabaseReference.CompletionListen
     private val m2EventListener = object : ChildEventListener {
         override fun onChildAdded(dataSnapshot: DataSnapshot, s: String?) {
             Log.d("a", "m2EventLister開始")
-            val map2 = dataSnapshot.value as Map<String, String>
-            val title = map2["title"] ?: ""
-            val body = map2["body"] ?: ""
-            val name = map2["name"] ?: ""
-            val uid = map2["uid"] ?: ""
-            val imageString = map2["image"] ?: ""
+            val map = dataSnapshot.value as Map<String, String>
+            val title = map["title"] ?: ""
+            val body = map["body"] ?: ""
+            val name = map["name"] ?: ""
+            val uid = map["uid"] ?: ""
+            val imageString = map["image"] ?: ""
             val genre=favorite!!.genre!!.toInt()
 
             val bytes =
