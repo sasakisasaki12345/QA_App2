@@ -70,13 +70,13 @@ class FavoriteActivity : AppCompatActivity(), DatabaseReference.CompletionListen
             Log.d("a", "mEventLister開始")
             val map = datasnapshot.value as Map<String, String>
             var key = datasnapshot.key
-            val questionUid = map["questionUid"]
-            var mGenre = map["genre"]
-            var favorite: Favorite = Favorite(questionUid, key,mGenre)
+            val questionUid = map["questionUid"]?: ""
+            var mGenre = map["genre"]?: ""
+            var favorite: Favorite = Favorite(questionUid, key!!,mGenre)
             //mFavoriteQuestionArrayList.add(favorite)
             Log.d("a", "mEventListerで取得した結果="+questionUid)
 
-            var mQestionRef =mDatabaseReference.child(ContentsPATH).child(mGenre.toString()).child(questionUid.toString())
+            var mQestionRef = mDatabaseReference.child(ContentsPATH).child(favorite.genre).child(favorite.questionUid)
             mQestionRef.addChildEventListener(m2EventListener)
 
         }

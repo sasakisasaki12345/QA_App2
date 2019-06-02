@@ -204,7 +204,7 @@ class QuestionDetailActivity : AppCompatActivity(),DatabaseReference.CompletionL
             var key = datasnapshot.key
             val questionUid = map["questionUid"]?:""
             val mGenre = map["genre"]?:""
-            var favorite:Favorite = Favorite(questionUid, key,mGenre)
+            var favorite:Favorite = Favorite(questionUid, key!!,mGenre)
             favoriteArrayList.add(favorite)
         }
 
