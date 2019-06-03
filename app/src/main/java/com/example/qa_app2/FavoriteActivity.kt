@@ -2,11 +2,15 @@ package com.example.qa_app2
 
 import android.support.v7.app.AppCompatActivity
 import android.os.Bundle
+import android.support.v7.widget.Toolbar
 import android.util.Base64
 import android.util.Log
+import android.view.View
 import android.widget.ListView
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
+import kotlinx.android.synthetic.main.app_bar_main.*
+import kotlinx.android.synthetic.main.list_questions.view.*
 import kotlin.collections.HashMap
 
 class FavoriteActivity : AppCompatActivity(), DatabaseReference.CompletionListener {
@@ -15,21 +19,27 @@ class FavoriteActivity : AppCompatActivity(), DatabaseReference.CompletionListen
     var mFavoriteQuestionArrayList = ArrayList<Favorite>()
     private lateinit var mListView: ListView
     private lateinit var mAdapter: QuestionsListAdapter
+    var mGenre :String = ""
 
     var favorite:Favorite?=null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_favorite)
+
     }
 
     override fun onResume() {
         super.onResume()
         Log.d("a","Resume開始")
+
+
+
         mListView = findViewById(R.id.listView)
         mAdapter = QuestionsListAdapter(this)
-        mQuestionArrayList = ArrayList<Question>()
-        mAdapter.notifyDataSetChanged()
+        //mQuestionArrayList = ArrayList<Question>()
+        mAdapter.setQuestionArrayList(mQuestionArrayList)
+        mListView.adapter=mAdapter
 
         var user = FirebaseAuth.getInstance().currentUser
         var mQuestionFavoRef = mDatabaseReference.child(FavoritePATH).child(user!!.uid)
@@ -40,10 +50,10 @@ class FavoriteActivity : AppCompatActivity(), DatabaseReference.CompletionListen
         //favoriteに入っているもの一式を取得しfavoriteArrayListに入れる
 
         //ログ出力
-        for(favo in mFavoriteQuestionArrayList) {
-            Log.d("a", "favorite内の情報取得")
-            Log.d("a", "genre="+favo.genre+"questionUid="+favo.questionUid)
-        }
+        //for(favo in mFavoriteQuestionArrayList) {
+          //  Log.d("a", "favorite内の情報取得")
+            //Log.d("a", "genre="+favo.genre+"questionUid="+favo.questionUid)
+        //}
 
        /*for (favorite in mFavoriteQuestionArrayList) {//favorite一つずつ取り出し
 
@@ -68,15 +78,16 @@ class FavoriteActivity : AppCompatActivity(), DatabaseReference.CompletionListen
     private val mEventListener = object : ChildEventListener {
         override fun onChildAdded(datasnapshot: DataSnapshot, p1: String?) {
             Log.d("a", "mEventLister開始")
+            Log.d("a", datasnapshot.value.toString())
             val map = datasnapshot.value as Map<String, String>
             var key = datasnapshot.key
             val questionUid = map["questionUid"]?: ""
-            var mGenre = map["genre"]?: ""
+            mGenre = map["genre"]?: ""
             var favorite: Favorite = Favorite(questionUid, key!!,mGenre)
-            //mFavoriteQuestionArrayList.add(favorite)
+            mFavoriteQuestionArrayList.add(favorite)
             Log.d("a", "mEventListerで取得した結果="+questionUid)
 
-            var mQestionRef = mDatabaseReference.child(ContentsPATH).child(favorite.genre).child(favorite.questionUid)
+            var mQestionRef = mDatabaseReference.child(ContentsPATH).child(favorite.genre) //外す→.child(favorite.questionUid)
             mQestionRef.addChildEventListener(m2EventListener)
 
         }
@@ -125,41 +136,50 @@ class FavoriteActivity : AppCompatActivity(), DatabaseReference.CompletionListen
         override fun onChildAdded(dataSnapshot: DataSnapshot, s: String?) {
             Log.d("a", dataSnapshot.value.toString())
             Log.d("a", "m2EventLister開始")
-            val map = dataSnapshot.value as Map<String, String>
-            val title = map["title"] ?: ""
-            val body = map["body"] ?: ""
-            val name = map["name"] ?: ""
-            val uid = map["uid"] ?: ""
-            val imageString = map["image"] ?: ""
-            val genre=favorite!!.genre!!.toInt()
+            Log.d("a", dataSnapshot.key)
+            Log.d("a", mFavoriteQuestionArrayList[0].questionUid)
+            if(dataSnapshot.key==mFavoriteQuestionArrayList[0].questionUid) {
+                val map = dataSnapshot.value as Map<String, String>
+                val title = map["title"] ?: ""
+                val body = map["body"] ?: ""
+                val name = map["name"] ?: ""
+                val uid = map["uid"] ?: ""
+                val genre = mGenre.toInt()
+                val imageString = map["image"] ?: ""
+                val bytes =
+                    if (imageString.isNotEmpty()) {
+                        Base64.decode(imageString, Base64.DEFAULT)
+                    } else {
+                        byteArrayOf()
+                    }
 
-            val bytes =
-                if (imageString.isNotEmpty()) {
-                    Base64.decode(imageString, Base64.DEFAULT)
-                } else {
-                    byteArrayOf()
+                var answerArrayList = ArrayList<Answer>()
+                val answerMap = map["answers"] as Map<String, String>?
+                if (answerMap != null) {
+                    for (key in answerMap.keys) {
+                        val temp = answerMap[key] as Map<String, String>
+                        val answerBody = temp["body"] ?: ""
+                        val answerName = temp["name"] ?: ""
+                        val answerUid = temp["uid"] ?: ""
+
+                        val answer = Answer(answerBody, answerName, answerUid, key)
+                        answerArrayList.add(answer)
+                    }
                 }
 
-            var answerArrayList = ArrayList<Answer>()
-            val answerMap = map["answers"] as Map<String, String>?
-            if (answerMap != null) {
-                for (key in answerMap.keys) {
-                    val temp = answerMap[key] as Map<String, String>
-                    val answerBody = temp["body"] ?: ""
-                    val answerName = temp["name"] ?: ""
-                    val answerUid = temp["uid"] ?: ""
+                val question = Question(
+                    title, body, name, uid, dataSnapshot.key ?: "",
+                    genre, bytes, answerArrayList
+                )
 
-                    val answer = Answer(answerBody, answerName, answerUid, key)
-                    answerArrayList.add(answer)
-                }
+                mFavoriteQuestionArrayList.clear()
+                Log.d("a", "favorite検索がtrue")
+
+                mQuestionArrayList.add(question)
+                mAdapter.notifyDataSetChanged()
+            }else{
+                Log.d("a", "favorite検索がfalse")
             }
-
-            val question = Question(
-                title, body, name, uid, dataSnapshot.key ?: "",
-                genre, bytes, answerArrayList
-            )
-            mQuestionArrayList.add(question)
-            mAdapter.notifyDataSetChanged()
         }
 
         override fun onChildChanged(dataSnapshot: DataSnapshot, s: String?) {

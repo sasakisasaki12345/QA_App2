@@ -243,6 +243,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
     override fun onResume() {
         super.onResume()
 
+
+
         //メニューバーのための変更点
         val user = FirebaseAuth.getInstance().currentUser
         if (user == null) {
@@ -252,6 +254,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
             setContentView(R.layout.activity_main_login)
             Log.d("a", "onResumeでactivity_main_loginをセット")
         }
+
+
 
         mToolbar = findViewById(R.id.toolbar)
         setSupportActionBar(mToolbar)
@@ -313,6 +317,8 @@ class MainActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelecte
         if (mGenre == 0) {
             onNavigationItemSelected(navigationView.menu.getItem(0))
         }
+
+
     }
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
